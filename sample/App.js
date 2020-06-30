@@ -29,25 +29,6 @@ import * as Sentry from '@sentry/react-native';
 
 import {version as packageVersion} from './package.json';
 
-Sentry.init({
-  dsn:
-    // Replace the example DSN below with your own DSN:
-    'https://6890c2f6677340daa4804f8194804ea2@o19635.ingest.sentry.io/148053',
-  debug: true,
-  beforeSend: (e) => {
-    if (!e.tags) {
-      e.tags = {};
-    }
-    e.tags['beforeSend'] = 'JS layer';
-
-    console.log('Event beforeSend:', e);
-    return e;
-  },
-  enableAutoSessionTracking: true,
-  // For testing, session close when 5 seconds (instead of the default 30) in the background.
-  sessionTrackingIntervalMillis: 5000,
-});
-
 const SetScopePropertiesButton = (props) => {
   return (
     <TouchableOpacity onPress={props.setScopeProps}>
@@ -59,6 +40,32 @@ const SetScopePropertiesButton = (props) => {
 SetScopePropertiesButton.displayName = 'SetScopeProperties';
 
 const App: () => React$Node = () => {
+  const [eventId, setEventId] = React.useState(null);
+
+  React.useEffect(() => {
+    Sentry.init({
+      dsn:
+        // Replace the example DSN below with your own DSN:
+        'https://6890c2f6677340daa4804f8194804ea2@o19635.ingest.sentry.io/148053',
+      debug: true,
+      beforeSend: (e) => {
+        if (!e.tags) {
+          e.tags = {};
+        }
+        e.tags['beforeSend'] = 'JS layer';
+
+        console.log('Event beforeSend:', e);
+
+        setEventId(e.event_id);
+
+        return e;
+      },
+      enableAutoSessionTracking: true,
+      // For testing, session close when 5 seconds (instead of the default 30) in the background.
+      sessionTrackingIntervalMillis: 5000,
+    });
+  }, []);
+
   const setScopeProps = React.useCallback(() => {
     const dateString = new Date().toString();
 
@@ -162,7 +169,9 @@ const App: () => React$Node = () => {
           )}
           <View style={styles.body}>
             <View style={styles.sectionContainer}>
+              <Text accessibilityLabel="eventId">{eventId}</Text>
               <Text
+                accessibilityLabel="captureMessage"
                 style={styles.sectionTitle}
                 onPress={() => {
                   Sentry.captureMessage('React Native Test Message');
@@ -170,6 +179,7 @@ const App: () => React$Node = () => {
                 captureMessage
               </Text>
               <Text
+                accessibilityLabel="captureException"
                 style={styles.sectionTitle}
                 onPress={() => {
                   Sentry.captureException(new Error('captureException test'));
@@ -177,6 +187,7 @@ const App: () => React$Node = () => {
                 captureException
               </Text>
               <Text
+                accessibilityLabel="throwNewError"
                 style={styles.sectionTitle}
                 onPress={() => {
                   throw new Error('throw new error test');
@@ -193,6 +204,12 @@ const App: () => React$Node = () => {
               <SetScopePropertiesButton setScopeProps={setScopeProps} />
               <Text onPress={clearBreadcrumbs} style={styles.sectionTitle}>
                 Clear Breadcrumbs
+              </Text>
+              <Text
+                style={styles.sectionTitle}
+                accessibilityLabel="clearEventId"
+                onPress={() => setEventId(null)}>
+                Clear Event Id
               </Text>
               <Text style={styles.sectionTitle}>Step One</Text>
               <Text style={styles.sectionDescription}>
